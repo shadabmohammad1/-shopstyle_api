@@ -8,22 +8,28 @@ from .connections import database_client
 
 class ProductAPIView(APIView):
     def format_response(self, result):
-        response = {"data": result}
+        response = {"results": result}
         return JsonResponse(response)
 
     def get_query(self):
         q = self.request.query_params.get('q')
 
-        query = { 
-            # "product_title": {"$regex" : q}
-            '$text': { '$search': q }
-        }
+        query = {}
+
+        if q:
+            query['$text'] = { '$search': q }
+
         return query
 
     def get_queryset(self):
         collection = database_client['products']
-        offset = self.request.query_params.get('offset', 0)
-        limit = self.request.query_params.get('page_size', settings.API_PAGE_SIZE)
+        offset = int(self.request.query_params.get('offset', '0') or '0')
+        limit = int(
+            self.request.query_params.get(
+                'page_size',
+                str(settings.API_PAGE_SIZE)
+            ) or str(settings.API_PAGE_SIZE)
+        )
 
         return collection.find(self.get_query()).skip(offset).limit(limit)
 
